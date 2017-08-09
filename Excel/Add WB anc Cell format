@@ -1,0 +1,40 @@
+'=== ExcelBasic1
+'워크북 추가,
+'셀에 값 입력
+'영역 경계선 설정
+'열 폭 자동설정
+'선택 영역 숫자포맷 설정
+'==============================================================
+Public Sub ExcelBasic1()
+    Dim apExcel As Excel.Application
+    
+    '이미 실행되고 있는 엑셀 프로그램을 가리킴
+    'Creates an object of pointing an already running Excel
+    Set apExcel = GetObject(, "Excel.application")
+    
+    '엑셀을 볼 수 있게 하고
+    ' So you can see Excel
+    apExcel.Visible = True
+    
+    '새 워크북을 하나 추가하고
+    'Adds a new book.
+    apExcel.Workbooks.Add
+    
+    '1행1열에 HELLO라는 값을 입력
+    'Add Text to a Cell
+    apExcel.Cells(1, 1).Formula = "HELLO"
+    
+    '영역 경계선
+    'You can use the line above, changing coordenates to go to any
+    'cell and you can also add Formulas
+    apExcel.Range("A1:Z1").Borders.Color = RGB(0, 0, 0) 'Use it to
+    
+    '열 폭 자동조절
+    'To adjust the column's width.
+    apExcel.Columns("A:AY").EntireColumn.AutoFit
+    
+    '선택영역의 숫자포맷 조정
+    apExcel.Range("A:Z").Select 'To establish a selection
+    apExcel.Selection.NumberFormat = "0" 'Adding different formats
+
+End Sub 'ExcelBasic1

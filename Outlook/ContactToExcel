@@ -1,0 +1,95 @@
+'=== ContactToExcel (최종갱신: 2017.8.10)
+'아웃룩 연락처 목록을 엑셀에 옮기기
+'아웃룩 새롭게 띄우기 (새 인스턴스)
+'   연락처 폴더 가리키기
+'   연락처 항목 가리키기
+'   연락처 이름, email, 핸드폰 정보를 엑셀에 옮기기
+'Ref)
+'연락처 오브젝트
+'https://msdn.microsoft.com/en-us/vba/outlook-vba/articles/contactitem-object-outlook
+'핸드폰번호 속성
+'https://msdn.microsoft.com/en-us/vba/outlook-vba/articles/contactitem-mobiletelephonenumber-property-outlook
+'email 속성
+'https://msdn.microsoft.com/VBA/Outlook-VBA/articles/contactitem-email1address-property-outlook
+'==============================================================
+Sub ContactToExcel()
+    '아웃룩 응용 프로그램을 사용하기 위한 변수 선언
+    Dim ol As Outlook.Application
+    
+    '아웃룩 이름공간(Name Space)을 사용하기 위한 변수 선언
+    Dim olns As Outlook.NameSpace
+    
+    '아웃룩 작업 폴더를 사용하기 위한 변수 선언
+    'Dim MyTasksFolder As Outlook.Folder
+    
+    '아웃룩 연락처 폴더를 사용하기 위한 변수 선언
+    'Dim MyContactsFolder As Outlook.Folder
+    
+    '아웃룩 임의의 폴더를 사용하기 위한 변수 선언
+    Dim MyFolder As Outlook.Folder
+    
+    '아웃룩 임의의 개체(아이템)를 사용하기 위한 변수 선언
+    Dim MyItems As Outlook.Items
+    
+    '엑셀 응용 프로그램을 사용하기 위한 변수 선언
+    Dim apExcel As Excel.Application
+    
+    Dim TaskRange As String
+    Dim i As Integer
+    
+    '아웃룩 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
+    Set ol = New Outlook.Application
+    
+    '아웃룩 이름공간을 메일API공간으로 지정(가리킴,참조함 referencing)
+    Set olns = ol.GetNamespace("MAPI")
+    
+    '아웃룩의 연락처폴더를 가리킴
+    Set MyFolder = olns.GetDefaultFolder(olFolderContacts)
+    
+    '위에서 지정된 아웃룩의 (연락처)폴더의 항목(아이템)을 가리킴
+    Set MyItems = MyFolder.Items
+    
+    '엑셀 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
+    Set apExcel = CreateObject("Excel.application")
+    
+    '방금 생성한 엑셀 프로그램을 화면에 보이게 함
+    apExcel.Visible = True
+    
+    '새 워크북을 추가
+    apExcel.Workbooks.Add
+    
+    '아웃룩의 지정폴더(연락처)의 총 항목에 대해서(총 갯수 만큼) 반복 실행
+    For i = 1 To 10 'MyItems.Count
+        
+        '개별 연락처의 이름(FullName)를 엑셀 해당 행의 1열에 복사
+        '이 때 해당 행이란 연락처항목의 순서 번호와 같음
+        apExcel.Cells(i, 1).Value = MyItems(i).FullName
+        
+        '개별 연락처의 핸드폰 번호(MobileTelephoneNumber)를 엑셀 해당 행의 1열에 복사
+        apExcel.Cells(i, 2).Value = MyItems(i).MobileTelephoneNumber
+        
+        '개별 연락처의 주email 주소(Email1Address)를 엑셀 해당 행의 1열에 복사
+        apExcel.Cells(i, 3).Value = MyItems(i).Email1Address
+    Next i
+    
+    '엑셀 작업 대상 영역을 아웃룩 작업 항목의 갯수 행 까지로 지정
+    TaskRange = "A1:" & "C" & MyItems.Count
+    
+    '방금 지정한 엑셀 작업 영역을 선택 (하이라이트 hightlight)
+    apExcel.Range(TaskRange).Select
+    
+    '엑셀 열 폭 자동조절 (전체 쉬트 범위에 대해)
+    apExcel.Columns("A:AY").EntireColumn.AutoFit
+    
+    '엑셀 특정 열의 폭은 50으로 지정
+    apExcel.Columns("B:B").ColumnWidth = 50
+    
+    '엑셀 쉬트 이름을 변경
+    apExcel.Sheets(1).Name = "ActionItems" '& Date
+    'MsgBox Date
+    
+    '엑셀 프로그램에 대한 참조 해제
+    Set apExcel = Nothing
+    
+End Sub 'ContactToExcel
+

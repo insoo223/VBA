@@ -8,8 +8,8 @@
 Sub TaskToExcel()
     Dim ol As Outlook.Application
     Dim olns As Outlook.NameSpace
-    Dim MyTasksFolder As Outlook.Folder
-    'Dim MyFolder As Outlook.Folder
+    'Dim MyTasksFolder As Outlook.Folder
+    Dim MyFolder As Outlook.Folder
     Dim MyItems As Outlook.Items
     
     Dim apExcel As Excel.Application
@@ -17,41 +17,62 @@ Sub TaskToExcel()
     Dim TaskRange As String
     Dim i As Integer
     
+    '아웃룩 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
     Set ol = New Outlook.Application
+    
+    '아웃룩 이름공간을 메일API공간으로 지정(가리킴,참조함 referencing)
     Set olns = ol.GetNamespace("MAPI")
-    'Set MyFolder = olns.GetDefaultFolder(olFolderContacts)
-    Set MyTasksFolder = olns.GetDefaultFolder(olFolderTasks)
+    
+    '아웃룩의 작업폴더를 가리킴
+    Set MyFolder = olns.GetDefaultFolder(olFolderTasks)
+    '아웃룩의 폴더에서 사용자가 만든 PLM Alignment(Thu)라는 폴더를 가리킴
     'Set MyFolder = MyTasksFolder.Folders("PLM Alignment(Thu)")
     
-    'Set MyItems = MyFolder.Items
-    Set MyItems = MyTasksFolder.Items
-    'MsgBox MyItems.Count
+    '위에서 지정된 아웃룩의 폴더의 항목(아이템)을 가리킴
+    Set MyItems = MyFolder.Items
     
-    'Open Excel
-    Set apExcel = CreateObject("Excel.application") 'Creates an object
-    apExcel.Visible = True ' So you can see Excel
-    apExcel.Workbooks.Add 'Adds a new book.
+    '엑셀 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
+    Set apExcel = CreateObject("Excel.application")
     
+    '방금 생성한 엑셀 프로그램을 화면에 보이게 함
+    apExcel.Visible = True
+    
+    '새 워크북을 추가
+    apExcel.Workbooks.Add
+    
+    '아웃룩의 지정폴더(작업폴더)의 총 항목에 대해서(총 갯수 만큼) 반복 실행
     For i = 1 To MyItems.Count
-        'MsgBox MyItems(i).Owner & "; " & MyItems(i).Subject & "; " & MyItems(i).DueDate
+        
+        '개별 작업의 책임자(Owner)를 엑셀 해당 행의 1열에 복사
+        '이 때 해당 행이란 작업항목의 순서 번호와 같음
         apExcel.Cells(i, 1).Value = MyItems(i).Owner
+        
+        '개별 작업의 이름(Subject)을 엑셀 해당 행의 2열에 복사
         apExcel.Cells(i, 2).Value = MyItems(i).Subject
+        
+        '개별 작업의 완료예정일(DueDate)을 엑셀 해당 행의 3열에 복사
         apExcel.Cells(i, 3).Value = MyItems(i).DueDate
     Next i
     
-    apExcel.Columns("A:AY").EntireColumn.AutoFit 'To adjust the column's width
-    apExcel.Columns("B:B").ColumnWidth = 50
-    
+    '엑셀 작업 대상 영역을 아웃룩 작업 항목의 갯수 행 까지로 지정
     TaskRange = "A1:" & "C" & MyItems.Count
     
+    '방금 지정한 엑셀 작업 영역을 선택 (하이라이트 hightlight)
     apExcel.Range(TaskRange).Select
+    
+    '엑셀 열 폭 자동조절 (전체 쉬트 범위에 대해)
+    apExcel.Columns("A:AY").EntireColumn.AutoFit
+    
+    '엑셀 특정 열의 폭은 50으로 지정
+    apExcel.Columns("B:B").ColumnWidth = 50
+    
+    '엑셀 쉬트 이름을 변경
     apExcel.Sheets(1).Name = "ActionItems" '& Date
     'MsgBox Date
     
-    
-    'MsgBox ("Hi")
-    apExcel.Visible = True ' So you can see Excel
     'ApExcel.ActiveWorkbook.Close (False)
+    
+    '엑셀 프로그램에 대한 참조 해제
     Set apExcel = Nothing
     
 End Sub 'TaskToExcel

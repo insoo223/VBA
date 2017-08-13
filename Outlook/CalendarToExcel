@@ -1,0 +1,119 @@
+'=== CalendarToExcel (최종갱신: 2017.8.13)
+'아웃룩 일정(Appointment) 목록을 엑셀에 옮기기
+'아웃룩 새롭게 띄우기 (새 인스턴스)
+'   일정(Appointment) 폴더 가리키기
+'   일정(Appointment) 항목 가리키기
+'   일정(Appointment) 이름, email, 핸드폰 정보를 엑셀에 옮기기
+'Ref)
+'일정(Appointment) 오브젝트
+'https://msdn.microsoft.com/en-us/vba/outlook-vba/articles/appointmentitem-object-outlook
+'==============================================================
+'아웃룩 일정(Appointment)항목을 Excel로 옮긴다
+Sub CalendarToExcel()
+    '아웃룩 응용 프로그램을 사용하기 위한 변수 선언
+    Dim ol As Outlook.Application
+    
+    '아웃룩 이름공간(Name Space)을 사용하기 위한 변수 선언
+    Dim olns As Outlook.NameSpace
+    
+    '아웃룩 작업 폴더를 사용하기 위한 변수 선언
+    'Dim MyTasksFolder As Outlook.Folder
+    
+    '아웃룩 연락처 폴더를 사용하기 위한 변수 선언
+    'Dim MyContactsFolder As Outlook.Folder
+    
+    '아웃룩 임의의 폴더를 사용하기 위한 변수 선언
+    Dim MyFolder As Outlook.Folder
+    
+    '아웃룩 임의의 개체(아이템)를 사용하기 위한 변수 선언
+    Dim MyItems As Outlook.Items
+    
+    '엑셀 응용 프로그램을 사용하기 위한 변수 선언
+    Dim apExcel As Excel.Application
+    
+    Dim TaskRange As String
+    Dim i, j As Integer
+    
+    '아웃룩 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
+    Set ol = New Outlook.Application
+    
+    '아웃룩 이름공간을 메일API공간으로 지정(가리킴,참조함 referencing)
+    Set olns = ol.GetNamespace("MAPI")
+    
+    '아웃룩의 일정(Appointment)폴더를 가리킴
+    'https://msdn.microsoft.com/en-us/library/office/aa220100(v=office.11).aspx
+    Set MyFolder = olns.GetDefaultFolder(olFolderCalendar)
+    
+    '위에서 지정된 아웃룩의 (일정(Appointment))폴더의 항목(아이템)을 가리킴
+    Set MyItems = MyFolder.Items
+    
+    '엑셀 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
+    Set apExcel = CreateObject("Excel.application")
+    
+    '방금 생성한 엑셀 프로그램을 화면에 보이게 함
+    apExcel.Visible = True
+    
+    '새 워크북을 추가
+    apExcel.Workbooks.Add
+    
+    '아웃룩 일정(Appointment)의 내용을 표시할 엑셀의 행
+    j = 1
+    
+    '아웃룩의 지정폴더(일정(Appointment))의 총 항목에 대해서(총 갯수 만큼) 반복 실행
+    For i = 1 To MyItems.Count
+        
+        '시작일에서 종료일 사이에서
+        If (MyItems(i).Start > "2017-07-31") And (MyItems(i).Start <= "2017-08-12") Then
+        
+            '일정(Appointment)의 항목 제목에 "CTA" 또는 "창의"라는 단어가 있으면
+            If InStr(MyItems(i).Subject, "CTA") > 0 _
+                Or InStr(MyItems(i).Subject, "창의") > 0 Then
+                
+                '엑셀의 해당 행의 1열에 시작일 표시
+                apExcel.Cells(j, 1).Value = MyItems(i).Start
+                
+                '엑셀의 해당 행의 2열에 지속시간[분 단위] 표시
+                apExcel.Cells(j, 2).Value = MyItems(i).Duration
+                
+                '엑셀의 해당 행의 3열에 일정(Appointment)항목 제목 표시
+                apExcel.Cells(j, 3).Value = MyItems(i).Subject
+                
+                '행 수 증가
+                j = j + 1
+            End If 'If InStr(MyItems(i).Subject, "CTA")
+        End If 'If (MyItems(i).Start > "2017-07-31")
+    Next i
+    
+    '아웃룩에서 추출해, 엑셀에 표시한 일정(Appointment) 항목 총 갯수-표지
+    apExcel.Cells(j, 1).Value = "Num of tasks"
+    
+    
+    '아웃룩에서 추출해, 엑셀에 표시한 일정(Appointment) 항목 총 지속시간[시간 단위]-표지
+    apExcel.Cells(j, 2).Formula = "Hours"
+    
+    '아웃룩에서 추출해, 엑셀에 표시한 일정(Appointment) 항목 총 갯수-값
+    apExcel.Cells(j + 1, 1).Value = MyItems.Count
+    
+    
+    '아웃룩에서 추출해, 엑셀에 표시한 일정(Appointment) 항목 총 지속시간[시간 단위]-값
+    apExcel.Cells(j + 1, 2).Formula = "=Sum(B1:B" & j - 1 & ")/60"
+     
+    
+    '엑셀 열 폭 자동조절 (전체 쉬트 범위에 대해)
+    apExcel.Columns("A:AY").EntireColumn.AutoFit 'To adjust the column's width
+    
+    '엑셀 특정 열의 폭은 50으로 지정
+    apExcel.Columns("C").ColumnWidth = 50
+    
+    '엑셀 작업 대상 영역을 아웃룩 일정(Appointment) 항목의 갯수 행 까지로 지정
+    TaskRange = "A1:" & "C" & j - 1
+    
+    apExcel.Range(TaskRange).Select
+    apExcel.Sheets(1).Name = "Wobbler" '& Date
+    
+    apExcel.Visible = True ' So you can see Excel
+    'ApExcel.ActiveWorkbook.Close (False)
+    Set apExcel = Nothing
+End Sub 'CalendarToExcel
+
+

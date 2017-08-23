@@ -1,0 +1,124 @@
+'아웃룩에 연동되어 사용하는 핫메일 계정으로 받은 편지함에서
+'메일의 발신자 주소를 Access DB에 모음 (중첩되지 않게)
+'이후 스팸체크해서 필요없는 메일 지우는 전초 단계 작업임.
+Sub CollectSenderEmail()
+    
+    '아웃룩 프로그램을 새롭게 실행하고 가리킴(참조함 referencing)
+    Dim objOutlook As New Outlook.Application
+    
+    '아웃룩 이름공간(Name Space)을 사용하기 위한 변수 선언
+    Dim MyNS As NameSpace
+    
+    'Dim objItem As Object
+    '아웃룩 메일 아이템을 사용하기 위한 변수 선언
+    Dim objItem As MailItem
+    
+    '메일 제목, 본문 담을 문자열 변수 선언
+    Dim strSubject, strBody As String
+    
+    '아웃룩 PST 폴더를 사용하기 위한 변수 선언
+    Dim PSTFolder As MAPIFolder
+    
+    'DB 연결을 위한 Connection 변수 선언
+    Dim conn As New Connection
+    
+    '레코드셋(전체 테이블 또는 부분 테이블) 변수 선언
+    Dim rec As New Recordset
+    
+    '문자열 변수 선언
+    Dim sql$, i&
+    
+    'Access 2007 버전의 DB connection
+    'conn.Open "Provider=microsoft.jet.oledb.4.0;" + _
+        "Data Source=" + DBsrc
+        
+    'Access 2013  버전의 DB connection
+    conn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" + _
+        "Data Source=" + DBsrc + "; Persist Security Info=False;"
+    
+    sql = "SELECT * FROM Sender ORDER BY SenderName"
+    rec.Open sql, conn, adOpenKeyset, adLockOptimistic
+
+    '아웃룩 이름공간을 메일API공간으로 지정(가리킴,참조함 referencing)
+    Set MyNS = objOutlook.GetNamespace("MAPI")
+    
+    '아웃룩의 inbox폴더를 가리킴
+    'Set PSTFolder = MyNS.Folders("insoo@hotmail.com").Folders("inbox")
+    'Set PSTFolder = MyNS.Folders("insoo@hotmail.com").Folders("받은 편지함")
+    'Set PSTFolder = MyNS.Folders("insoo2011").Folders("받은 편지함")
+    'Set PSTFolder = MyNS.Folders("InsooMail2014(Celeron)").Folders("받은 편지함")
+    'Set PSTFolder = MyNS.Folders("Insoo2015(Leno)").Folders("받은 편지함")
+    Set PSTFolder = MyNS.Folders("Hotmail_20170101_20170631").Folders("inbox")
+    
+    'If False Then
+    If True Then
+        i = 0
+        For Each objItem In PSTFolder.Items
+            i = i + 1
+            'Debug.Print i & ", " & objItem.SentOn
+            'Debug.Print i & ", " & objItem.ReceivedTime
+            
+            'Debug.Print
+            
+            'If (objItem.SenderName <> Null) Then
+                Debug.Print objItem.SenderName
+                strSender = objItem.SenderName
+            'End If
+            
+            '메일 보낸사람 이름(SenderName)에 작은 따옴표 있으면 밑줄로 교체
+            'NewSender 문자열 변수가 메일 보낸사람 이름의 최종 결과
+            If InStr(strSender, "'") > 0 Then
+                NewSender = Replace(strSender, "'", "_")
+                Debug.Print i & ":" & NewSender
+            Else
+                NewSender = strSender
+            End If
+            
+            '보낸사람의 메일주소(SenderEmailAddress)가 기존 DB에 있는지 검색
+            'rec는 검색 결과를 담은 레코드셋
+            strEmail = objItem.SenderEmailAddress
+            sql = "SELECT SenderEmail, SenderName FROM Sender " _
+                    & " Where (SenderEmail = '" & strEmail & "')" _
+                    & " ORDER BY SenderName; "
+            Set rec = conn.Execute(sql)
+            'if not empty
+            '아웃룩 받은편지함(inbox)에 있는 메일주소가 DB에 있음.
+            '따라서,메일주소DB필드에 추가할 필요 없음
+            If Not (rec.BOF And rec.EOF) Then
+                    Debug.Print "Already exist:" & rec!SenderName & rec!SenderEmail
+                    If (rec!SenderName = "") Then
+                        rec!SenderName = NewSender
+                        rec.Update
+                    End If
+                    'Debug.Print "SQLqry:" & rec!ID
+                    'Debug.Print rec.RecordCount
+                    'Debug.Print rec.Fields("ID)
+                    
+            End If
+            
+            'if empty
+            '아웃룩 받은편지함(inbox)에 있는 메일주소가 DB에 없음. 즉, 신규주소
+            '따라서,메일주소DB필드에 새로운 주소값을 추가해야 함
+            If (rec.BOF And rec.EOF) Then
+                rec.Close
+                sql = "SELECT * FROM Sender "
+                rec.Open sql, conn, adOpenKeyset, adLockOptimistic
+                Debug.Print "New:" & strSender & strDate
+                rec.AddNew
+                rec!SenderName = NewSender
+                rec!SenderEmail = strEmail
+                rec.Update
+                rec.MoveFirst
+            Else
+                'Debug.Print "Old:" & strSender & strDate
+            End If
+            
+            
+        Next
+    End If
+    
+    Set objOutlook = Nothing
+    Set MyNS = Nothing
+    Set PSTFolder = Nothing
+End Sub 'CollectSenderEmail
+

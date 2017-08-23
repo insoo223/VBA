@@ -1,0 +1,86 @@
+'아웃룩에 연동되어 사용하는 핫메일 계정으로 받은 편지함에서
+'메일의 발신자 주소를 CollectSenderEmail() 서브루틴 수행하여
+'Access DB에 (중첩되지 않게)모은 후,
+'이후 스팸체크해서 필요없는 메일 지우는 작업임.
+Sub MailEraserFast()
+    Dim objOutlook As New Outlook.Application
+    Dim apExcel As New Excel.Application
+    Dim MyNS As NameSpace
+    Dim objItem As Object
+    Dim objPSTitem As Object
+    Dim strSubject, strBody As String
+    Dim PSTFolder As MAPIFolder
+    Dim cnt, found As Integer
+    
+    Dim conn As New Connection
+    Dim rec As New Recordset
+    Dim arrSpamSender(1 To 2000) As String
+    'Dim arrSpamSender
+    Dim sql$, i&
+    
+    'For Access 2007
+    'conn.Open "Provider=microsoft.jet.oledb.4.0;" + _
+        "Data Source=" + DBsrc
+        
+    'For Access 2013
+    conn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" + _
+        "Data Source=" + DBsrc + "; Persist Security Info=False;"
+    sql = "SELECT SenderEmail FROM Sender Where Spam = True Order by SenderEmail"
+    rec.Open sql, conn, adOpenKeyset, adLockOptimistic
+    'Debug.Print rec!SenderEmail
+    
+    apExcel.Visible = True
+    apExcel.Workbooks.Add
+    
+    Set MyNS = objOutlook.GetNamespace("MAPI")
+    'Set PSTFolder = MyNS.Folders("insoo@hotmail.com").Folders("받은 편지함")
+    'Set PSTFolder = MyNS.Folders("insoo@hotmail.com").Folders("inbox")
+    'Set PSTFolder = MyNS.Folders("Insoo2011").Folders("받은 편지함")
+    'Set PSTFolder = MyNS.Folders("InsooMail2014(Celeron)").Folders("받은 편지함")
+    'Set PSTFolder = MyNS.Folders("Insoo2015(Leno)").Folders("받은 편지함")
+    Set PSTFolder = MyNS.Folders("Hotmail_20170101_20170631").Folders("inbox")
+    
+    'if not empty
+    If Not (rec.BOF And rec.EOF) Then
+        'Set Spam sender's name into array
+        rec.MoveFirst
+        i = 1
+        Do While rec.EOF = False
+            arrSpamSender(i) = rec!SenderEmail
+            apExcel.Sheets(1).Cells(i, 1) = rec!SenderEmail
+            rec.MoveNext
+            i = i + 1
+        Loop
+        MaxNumSpam = i - 1
+        'ReDim arrSpamSender(1 To i - 1) As String
+        Debug.Print arrSpamSender(1), i, UBound(arrSpamSender)
+        apExcel.Sheets(1).Cells(1, 2) = i
+        apExcel.Sheets(1).Cells(1, 3) = UBound(arrSpamSender)
+        'apExcel.Columns("A:Z").EntireColumn.AutoFit
+        For k = 1 To MaxNumSpam
+            'Debug.Print arrSpamSender(k)
+        Next
+        
+        'Debug.Print rec!SenderEmail
+        cnt = 1
+        found = 1
+        spam = 1
+        For Each objItem In PSTFolder.Items
+            For i = 1 To MaxNumSpam
+                If InStr(objItem.SenderEmailAddress, arrSpamSender(i)) > 0 Then
+                    'Debug.Print cnt & ": " & spam & ": " & objItem.SenderEmail
+                    apExcel.Sheets(1).Cells(found, 4) = objItem.SenderEmailAddress
+                    objItem.Delete
+                    spam = spam + 1
+                    found = found + 1
+                    GoTo aa
+                End If
+            Next
+            cnt = cnt + 1
+aa:  Next
+    End If
+    
+    Set objOutlook = Nothing
+    Set MyNS = Nothing
+    Set PSTFolder = Nothing
+End Sub 'MailEraserFast
